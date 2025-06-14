@@ -166,10 +166,26 @@
                 padding: 20px;
             }
         }
+
+        .logo-image {
+            display: block;
+            margin: 0 auto 24px auto;
+            max-width: 220px;
+            width: 100%;
+            height: auto;
+        }
+
+        .address-format-example {
+            color: #86868b;
+            font-size: 13px;
+            margin-top: 6px;
+            margin-bottom: 2px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <img src="logo.png" alt="Kids & Teens Medical Group Logo" class="logo-image">
         <div class="header">
             <h1>Find Your Nearest Office</h1>
             <p>Enter your address to find the closest office locations</p>
@@ -180,6 +196,9 @@
                 <label for="address">Your Address</label>
                 <input type="text" id="address" placeholder="123 Main St, City, State ZIP">
                 <div class="error-message" id="error-message"></div>
+                <div class="address-format-example">
+                    <small>Enter your address in this format: <b>123 Main St, City, State ZIP</b><br>Example: <b>8628 Reseda Blvd, Northridge, CA 91324</b></small>
+                </div>
             </div>
             <button class="search-button" id="search-button">Find Nearest Offices</button>
         </div>
