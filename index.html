@@ -188,17 +188,14 @@
         <img src="logo.png" alt="Kids & Teens Medical Group Logo" class="logo-image">
         <div class="header">
             <h1>Find Your Nearest Office</h1>
-            <p>Enter your address to find the closest office locations</p>
+            <p>Enter your ZIP code to find the closest office locations</p>
         </div>
 
         <div class="search-container">
             <div class="input-group">
-                <label for="address">Your Address</label>
-                <input type="text" id="address" placeholder="123 Main St, City, State ZIP">
+                <label for="zipcode">Your ZIP Code</label>
+                <input type="text" id="zipcode" placeholder="e.g. 91324" maxlength="5" pattern="\\d{5}">
                 <div class="error-message" id="error-message"></div>
-                <div class="address-format-example">
-                    <small>Enter your address in this format: <b>123 Main St, City, State ZIP</b><br>Example: <b>8628 Reseda Blvd, Northridge, CA 91324</b></small>
-                </div>
             </div>
             <button class="search-button" id="search-button">Find Nearest Offices</button>
         </div>
@@ -251,55 +248,37 @@
             }
         };
 
-        // Basic address validation
-        function validateAddress(address) {
-            address = address.trim();
-            
-            if (address.length < 10) {
-                return { valid: false, message: "Address too short" };
+        // Basic ZIP code validation
+        function validateZipcode(zipcode) {
+            zipcode = zipcode.trim();
+            if (!/^\d{5}$/.test(zipcode)) {
+                return { valid: false, message: "Please enter a valid 5-digit ZIP code" };
             }
-            
-            // Check for basic components
-            const hasNumber = /\d/.test(address);
-            const hasComma = address.includes(',');
-            
-            if (!hasNumber) {
-                return { valid: false, message: "Address should include a street number" };
-            }
-            
-            if (!hasComma) {
-                return { valid: false, message: "Address should include city and state (separated by commas)" };
-            }
-            
-            return { valid: true, address: address };
+            return { valid: true, zipcode: zipcode };
         }
 
-        // Geocode address using Nominatim
-        async function geocodeAddress(address) {
+        // Geocode ZIP code using Nominatim
+        async function geocodeZipcode(zipcode) {
             // Check cache first
-            const cached = addressCache.get(address);
+            const cached = addressCache.get(zipcode);
             if (cached) {
                 return cached;
             }
-
             try {
-                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=us`);
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${zipcode}&countrycodes=us&limit=1`);
                 const data = await response.json();
-                
                 if (data.length === 0) {
-                    throw new Error("Address not found");
+                    throw new Error("ZIP code not found");
                 }
-                
                 const coords = {
                     lat: parseFloat(data[0].lat),
                     lng: parseFloat(data[0].lon)
                 };
-                
                 // Cache the result
-                addressCache.set(address, coords);
+                addressCache.set(zipcode, coords);
                 return coords;
             } catch (error) {
-                throw new Error("Unable to find address coordinates");
+                throw new Error("Unable to find ZIP code location");
             }
         }
 
@@ -351,36 +330,29 @@
 
         // Main search function
         async function searchOffices() {
-            const addressInput = document.getElementById('address');
+            const zipcodeInput = document.getElementById('zipcode');
             const searchButton = document.getElementById('search-button');
             const loading = document.getElementById('loading');
             const results = document.getElementById('results');
-            
-            const address = addressInput.value;
-            
+            const zipcode = zipcodeInput.value;
             // Reset UI
             hideError();
             results.style.display = 'none';
-            
-            // Validate address
-            const validation = validateAddress(address);
+            // Validate ZIP code
+            const validation = validateZipcode(zipcode);
             if (!validation.valid) {
                 showError(validation.message);
                 return;
             }
-            
             // Show loading state
             searchButton.disabled = true;
             searchButton.textContent = 'Searching...';
             loading.style.display = 'block';
-            
             try {
-                // Geocode user address
-                const userCoords = await geocodeAddress(validation.address);
-                
+                // Geocode user ZIP code
+                const userCoords = await geocodeZipcode(validation.zipcode);
                 // Display results
                 displayResults(userCoords);
-                
             } catch (error) {
                 showError(error.message);
             } finally {
@@ -393,14 +365,13 @@
 
         // Event listeners
         document.getElementById('search-button').addEventListener('click', searchOffices);
-        document.getElementById('address').addEventListener('keypress', (e) => {
+        document.getElementById('zipcode').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 searchOffices();
             }
         });
-
         // Clear error on input
-        document.getElementById('address').addEventListener('input', hideError);
+        document.getElementById('zipcode').addEventListener('input', hideError);
     </script>
 </body>
 </html>
