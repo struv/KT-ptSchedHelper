@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Office Finder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1d1d1f;
+        }
+
+        .header p {
+            font-size: 17px;
+            color: #86868b;
+        }
+
+        .search-container {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 32px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1d1d1f;
+            margin-bottom: 8px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e5e5e7;
+            border-radius: 8px;
+            font-size: 17px;
+            transition: border-color 0.2s ease;
+            background: #fbfbfd;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #007aff;
+            background: white;
+        }
+
+        .search-button {
+            width: 100%;
+            background: #007aff;
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 17px;
+            font-weight: 500;
+            margin-top: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .search-button:hover:not(:disabled) {
+            background: #0056b3;
+        }
+
+        .search-button:disabled {
+            background: #86868b;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: #ff3b30;
+            font-size: 14px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #86868b;
+            display: none;
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1d1d1f;
+        }
+
+        .office-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e5e7;
+        }
+
+        .office-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-bottom: 4px;
+        }
+
+        .office-address {
+            font-size: 15px;
+            color: #86868b;
+            margin-bottom: 8px;
+        }
+
+        .office-distance {
+            font-size: 16px;
+            font-weight: 500;
+            color: #007aff;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 20px 16px;
+            }
+            
+            .header h1 {
+                font-size: 28px;
+            }
+            
+            .search-container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Find Your Nearest Office</h1>
+            <p>Enter your address to find the closest office locations</p>
+        </div>
+
+        <div class="search-container">
+            <div class="input-group">
+                <label for="address">Your Address</label>
+                <input type="text" id="address" placeholder="123 Main St, City, State ZIP">
+                <div class="error-message" id="error-message"></div>
+            </div>
+            <button class="search-button" id="search-button">Find Nearest Offices</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <p>Finding your nearest offices...</p>
+        </div>
+
+        <div class="results" id="results">
+            <div class="results-header">Nearest Offices</div>
+            <div id="office-list"></div>
+        </div>
+    </div>
+
+    <script>
+        // Sample office data - replace with your actual data
+        const offices = [
+            { name: "Northridge", address: "8628 Reseda Blvd, Northridge, CA 91324", lat: 34.2269302, lng: -118.535982 },
+            { name: "West Hills", address: "7345 Medical Center Dr, West Hills, CA 91307", lat: 34.2022101, lng: -118.6295634 },
+            { name: "Pasadena", address: "504 S Sierra Madre Blvd, Pasadena, CA 91107", lat: 34.1441123, lng: -118.1017278 },
+            { name: "Van Nuys", address: "14426 Gilmore St, Van Nuys, CA 91401", lat: 34.1875687, lng: -118.4471811 },
+            { name: "San Fernando", address: "777 Truman St., San Fernando, CA 91340", lat: 34.2815625, lng: -118.4388773 },
+            { name: "Agoura Hills", address: "5115 Clareton Dr, Agoura Hills, CA 91301", lat: 34.1461333, lng: -118.7540099 },
+            { name: "La Canada", address: "1021 Foothill Blvd, La Canada Flintridge, CA 91011", lat: 34.2047634, lng: -118.200693 },
+            { name: "Whittier", address: "13470 Telegraph Rd, Whittier, CA 90605", lat: 33.938736, lng: -118.044474 },
+            { name: "Beverly Hills", address: "8733 Beverly Blvd, West Hollywood, CA 90048", lat: 34.0769292, lng: -118.3815031 },
+            { name: "Glendale", address: "1530 E Chevy Chase Dr, Glendale, CA 91206", lat: 34.1522403, lng: -118.2311903 },
+            { name: "Canyon Country", address: "20655 Soledad Canyon Rd, Canyon Country, CA 91351", lat: 34.415772, lng: -118.4686645 },
+            { name: "Culver City", address: "3831 Hughes Ave, Culver City, CA 90232", lat: 34.0227121, lng: -118.3984349 },
+            { name: "Valencia", address: "24330 McBean Pkwy, Valencia, CA 91355", lat: 34.4044106, lng: -118.552926 },
+            { name: "Torrance", address: "3524 Torrance Blvd, Torrance, CA 90503", lat: 33.8355029, lng: -118.3472953 },
+            { name: "Mission Hills", address: "10200 Sepulveda Blvd, Mission Hills, CA 91345", lat: 34.255573, lng: -118.4672 },
+            { name: "Pico Rivera", address: "8337 Telegraph Rd, Pico Rivera, CA 90660", lat: 33.9642851, lng: -118.1131204 },
+            { name: "Arcadia", address: "16 E Huntington Dr, Arcadia, CA 91006", lat: 34.1399731, lng: -118.0308683 },
+            { name: "Santa Monica", address: "2221 Lincoln Blvd, Santa Monica, CA 90404", lat: 34.0155591, lng: -118.486681 },
+            { name: "Downey", address: "8021 4th Street, Downey, CA 90241", lat: 33.9455586, lng: -118.1353309 },
+            { name: "Tarzana", address: "18372 Clark St, Tarzana, CA 91356", lat: 34.1696927, lng: -118.5333833 },
+            { name: "Hollywood", address: "5255 Sunset Blvd, Los Angeles, CA 90027", lat: 34.0981967, lng: -118.3045711 },
+            { name: "La Mirada", address: "12675 La Mirada Blvd, La Mirada, CA 90638", lat: 33.9161889, lng: -118.0124715 }
+        ];
+
+        // Cache for geocoded addresses
+        const addressCache = {
+            get: (address) => {
+                const cached = localStorage.getItem(`addr_${address}`);
+                return cached ? JSON.parse(cached) : null;
+            },
+            set: (address, coords) => {
+                localStorage.setItem(`addr_${address}`, JSON.stringify(coords));
+            }
+        };
+
+        // Basic address validation
+        function validateAddress(address) {
+            address = address.trim();
+            
+            if (address.length < 10) {
+                return { valid: false, message: "Address too short" };
+            }
+            
+            // Check for basic components
+            const hasNumber = /\d/.test(address);
+            const hasComma = address.includes(',');
+            
+            if (!hasNumber) {
+                return { valid: false, message: "Address should include a street number" };
+            }
+            
+            if (!hasComma) {
+                return { valid: false, message: "Address should include city and state (separated by commas)" };
+            }
+            
+            return { valid: true, address: address };
+        }
+
+        // Geocode address using Nominatim
+        async function geocodeAddress(address) {
+            // Check cache first
+            const cached = addressCache.get(address);
+            if (cached) {
+                return cached;
+            }
+
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=us`);
+                const data = await response.json();
+                
+                if (data.length === 0) {
+                    throw new Error("Address not found");
+                }
+                
+                const coords = {
+                    lat: parseFloat(data[0].lat),
+                    lng: parseFloat(data[0].lon)
+                };
+                
+                // Cache the result
+                addressCache.set(address, coords);
+                return coords;
+            } catch (error) {
+                throw new Error("Unable to find address coordinates");
+            }
+        }
+
+        // Calculate distance between two points using Haversine formula
+        function calculateDistance(lat1, lng1, lat2, lng2) {
+            const R = 3959; // Earth's radius in miles
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                     Math.sin(dLng / 2) * Math.sin(dLng / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        // Display results
+        function displayResults(userCoords) {
+            const officesWithDistance = offices.map(office => ({
+                ...office,
+                distance: calculateDistance(userCoords.lat, userCoords.lng, office.lat, office.lng)
+            }));
+
+            // Sort by distance
+            officesWithDistance.sort((a, b) => a.distance - b.distance);
+
+            const officeList = document.getElementById('office-list');
+            officeList.innerHTML = officesWithDistance.map(office => `
+                <div class="office-card">
+                    <div class="office-name">${office.name}</div>
+                    <div class="office-address">${office.address}</div>
+                    <div class="office-distance">${office.distance.toFixed(1)} miles away</div>
+                </div>
+            `).join('');
+
+            document.getElementById('results').style.display = 'block';
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+
+        // Hide error message
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        // Main search function
+        async function searchOffices() {
+            const addressInput = document.getElementById('address');
+            const searchButton = document.getElementById('search-button');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            
+            const address = addressInput.value;
+            
+            // Reset UI
+            hideError();
+            results.style.display = 'none';
+            
+            // Validate address
+            const validation = validateAddress(address);
+            if (!validation.valid) {
+                showError(validation.message);
+                return;
+            }
+            
+            // Show loading state
+            searchButton.disabled = true;
+            searchButton.textContent = 'Searching...';
+            loading.style.display = 'block';
+            
+            try {
+                // Geocode user address
+                const userCoords = await geocodeAddress(validation.address);
+                
+                // Display results
+                displayResults(userCoords);
+                
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                // Reset button state
+                searchButton.disabled = false;
+                searchButton.textContent = 'Find Nearest Offices';
+                loading.style.display = 'none';
+            }
+        }
+
+        // Event listeners
+        document.getElementById('search-button').addEventListener('click', searchOffices);
+        document.getElementById('address').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchOffices();
+            }
+        });
+
+        // Clear error on input
+        document.getElementById('address').addEventListener('input', hideError);
+    </script>
+</body>
+</html>
