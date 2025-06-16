@@ -132,6 +132,30 @@
             margin-bottom: 12px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             border: 1px solid #e5e5e7;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .office-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .office-card a {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .office-card .map-link {
+            color: #007aff;
+            font-size: 14px;
+            margin-top: 8px;
+            display: inline-block;
+        }
+
+        .office-card .map-link:hover {
+            text-decoration: underline;
         }
 
         .office-name {
@@ -188,13 +212,13 @@
         <img src="logo.png" alt="Kids & Teens Medical Group Logo" class="logo-image">
         <div class="header">
             <h1>Find Your Nearest Office</h1>
-            <p>Enter your ZIP code to find the closest office locations</p>
+            <p>Enter your ZIP code or city name to find the closest office locations</p>
         </div>
 
         <div class="search-container">
             <div class="input-group">
-                <label for="zipcode">Your ZIP Code</label>
-                <input type="text" id="zipcode" placeholder="e.g. 91324" maxlength="5" pattern="\\d{5}">
+                <label for="location">Enter ZIP Code or City Name</label>
+                <input type="text" id="zipcode" placeholder="e.g. 91324 or Pasadena" maxlength="50">
                 <div class="error-message" id="error-message"></div>
             </div>
             <button class="search-button" id="search-button">Find Nearest Offices</button>
@@ -248,37 +272,61 @@
             }
         };
 
-        // Basic ZIP code validation
-        function validateZipcode(zipcode) {
-            zipcode = zipcode.trim();
-            if (!/^\d{5}$/.test(zipcode)) {
-                return { valid: false, message: "Please enter a valid 5-digit ZIP code" };
+        // Basic location validation
+        function validateLocation(location) {
+            location = location.trim();
+            if (location.length === 0) {
+                return { valid: false, message: "Please enter a ZIP code or city name" };
             }
-            return { valid: true, zipcode: zipcode };
+            
+            // Check if input is numeric (ZIP code)
+            if (/^\d+$/.test(location)) {
+                if (location.length !== 5) {
+                    return { valid: false, message: "Please enter a valid 5-digit ZIP code" };
+                }
+                return { valid: true, location: location, type: 'zip' };
+            }
+            
+            // Input is alphabetic (city name)
+            if (!/^[a-zA-Z\s]+$/.test(location)) {
+                return { valid: false, message: "City name should only contain letters and spaces" };
+            }
+            return { valid: true, location: location, type: 'city' };
         }
 
-        // Geocode ZIP code using Nominatim
-        async function geocodeZipcode(zipcode) {
+        // Geocode location using Nominatim
+        async function geocodeLocation(location, type) {
             // Check cache first
-            const cached = addressCache.get(zipcode);
+            const cached = addressCache.get(location);
             if (cached) {
                 return cached;
             }
+
             try {
-                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${zipcode}&countrycodes=us&limit=1`);
-                const data = await response.json();
-                if (data.length === 0) {
-                    throw new Error("ZIP code not found");
+                let url;
+                if (type === 'zip') {
+                    url = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${location}&countrycodes=us&limit=1`;
+                } else {
+                    url = `https://nominatim.openstreetmap.org/search?format=json&city=${location}&countrycodes=us&limit=1`;
                 }
+
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.length === 0) {
+                    throw new Error(type === 'zip' ? "ZIP code not found" : "City not found");
+                }
+
                 const coords = {
                     lat: parseFloat(data[0].lat),
                     lng: parseFloat(data[0].lon)
                 };
+                
                 // Cache the result
-                addressCache.set(zipcode, coords);
+                addressCache.set(location, coords);
                 return coords;
             } catch (error) {
-                throw new Error("Unable to find ZIP code location");
+                throw new Error(`Unable to find ${type === 'zip' ? 'ZIP code' : 'city'} location`);
             }
         }
 
@@ -305,13 +353,19 @@
             officesWithDistance.sort((a, b) => a.distance - b.distance);
 
             const officeList = document.getElementById('office-list');
-            officeList.innerHTML = officesWithDistance.map(office => `
-                <div class="office-card">
-                    <div class="office-name">${office.name}</div>
-                    <div class="office-address">${office.address}</div>
-                    <div class="office-distance">${office.distance.toFixed(1)} miles away</div>
-                </div>
-            `).join('');
+            officeList.innerHTML = officesWithDistance.map(office => {
+                const searchQuery = `Kids & Teens Medical Group ${office.address}`;
+                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`;
+                return `
+                    <div class="office-card">
+                        <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
+                            <div class="office-name">${office.name}</div>
+                            <div class="office-address">${office.address}</div>
+                            <div class="office-distance">${office.distance.toFixed(1)} miles away</div>
+                        </a>
+                    </div>
+                `;
+            }).join('');
 
             document.getElementById('results').style.display = 'block';
         }
@@ -330,27 +384,31 @@
 
         // Main search function
         async function searchOffices() {
-            const zipcodeInput = document.getElementById('zipcode');
+            const locationInput = document.getElementById('zipcode');
             const searchButton = document.getElementById('search-button');
             const loading = document.getElementById('loading');
             const results = document.getElementById('results');
-            const zipcode = zipcodeInput.value;
+            const location = locationInput.value;
+            
             // Reset UI
             hideError();
             results.style.display = 'none';
-            // Validate ZIP code
-            const validation = validateZipcode(zipcode);
+            
+            // Validate location
+            const validation = validateLocation(location);
             if (!validation.valid) {
                 showError(validation.message);
                 return;
             }
+            
             // Show loading state
             searchButton.disabled = true;
             searchButton.textContent = 'Searching...';
             loading.style.display = 'block';
+            
             try {
-                // Geocode user ZIP code
-                const userCoords = await geocodeZipcode(validation.zipcode);
+                // Geocode user location
+                const userCoords = await geocodeLocation(validation.location, validation.type);
                 // Display results
                 displayResults(userCoords);
             } catch (error) {
