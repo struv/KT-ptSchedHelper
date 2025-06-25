@@ -1,7 +1,5 @@
-﻿# KT-ptSchedHelper
-
 # Clinic Finder App Roadmap
-
+https://kt-pt-sched-helper.vercel.app
 ## Phase 1: Core Infrastructure (Weeks 1-4)
 
 ### Database Migration
