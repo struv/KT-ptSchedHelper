@@ -22,3 +22,23 @@ const offices = [
     { name: "Hollywood", address: "5255 Sunset Blvd, Los Angeles, CA 90027", lat: 34.0981967, lng: -118.3045711 },
     { name: "La Mirada", address: "12675 La Mirada Blvd, La Mirada, CA 90638", lat: 33.9161889, lng: -118.0124715 }
 ]; 
+
+const employees = [
+    // San Fernando Valley employees (close)
+    { id: 1, name: "Employee A", lat: 34.2156, lng: -118.5289 }, // ~1.5 miles
+    { id: 2, name: "Employee B", lat: 34.1834, lng: -118.5567 }, // ~3.2 miles
+    { id: 3, name: "Employee C", lat: 34.2445, lng: -118.4987 }, // ~2.8 miles
+    
+    // Nearby valleys (medium distance)
+    { id: 4, name: "Employee D", lat: 34.1389, lng: -118.3534 }, // Burbank area, ~15 miles
+    { id: 5, name: "Employee E", lat: 34.0922, lng: -118.4033 }, // West Hollywood area, ~18 miles
+    { id: 6, name: "Employee F", lat: 34.2734, lng: -118.6089 }, // Thousand Oaks area, ~12 miles
+    
+    // Further out (long commute)
+    { id: 7, name: "Employee G", lat: 34.0522, lng: -118.2437 }, // Downtown LA, ~25 miles
+    { id: 8, name: "Employee H", lat: 33.9425, lng: -118.4081 }, // LAX area, ~30 miles
+    { id: 9, name: "Employee I", lat: 34.4208, lng: -118.2437 }, // Lancaster area, ~35 miles
+    
+    // Edge cases
+    { id: 10, name: "Employee J", lat: 33.7701, lng: -118.1937 }, // Long Beach, ~45 miles
+  ];
