@@ -1,6 +1,6 @@
 # Clinic Finder App Roadmap
 https://kt-pt-sched-helper.vercel.app
-
+(temporary)
 
 Steps for the mvp are:
 - translate provider addresses into coordinates with 4 sigfigs to reduce privacy concerns
