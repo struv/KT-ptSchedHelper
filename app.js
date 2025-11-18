@@ -185,6 +185,141 @@ function handleHashChange() {
     }
 }
 
+// Provider search functionality
+let currentHighlightedIndex = -1;
+let currentSuggestions = [];
+
+function searchProviders(query) {
+    if (!query || query.trim().length === 0) {
+        return [];
+    }
+
+    query = query.toLowerCase().trim();
+
+    // Search for providers matching the query
+    return providers.filter(provider => {
+        const name = provider.name.toLowerCase();
+        return name.includes(query);
+    }).slice(0, 10); // Limit to 10 suggestions
+}
+
+function highlightMatch(text, query) {
+    const index = text.toLowerCase().indexOf(query.toLowerCase());
+    if (index === -1) return text;
+
+    return text.substring(0, index) +
+           '<strong>' + text.substring(index, index + query.length) + '</strong>' +
+           text.substring(index + query.length);
+}
+
+function showProviderSuggestions(query) {
+    const suggestionsContainer = document.getElementById('provider-suggestions');
+    const matches = searchProviders(query);
+    currentSuggestions = matches;
+    currentHighlightedIndex = -1;
+
+    if (matches.length === 0) {
+        suggestionsContainer.classList.remove('show');
+        return;
+    }
+
+    suggestionsContainer.innerHTML = matches.map((provider, index) =>
+        `<div class="provider-suggestion-item" data-index="${index}">
+            ${highlightMatch(provider.name, query)}
+        </div>`
+    ).join('');
+
+    suggestionsContainer.classList.add('show');
+
+    // Add click handlers to suggestions
+    suggestionsContainer.querySelectorAll('.provider-suggestion-item').forEach((item, index) => {
+        item.addEventListener('click', () => selectProvider(matches[index]));
+    });
+}
+
+function hideProviderSuggestions() {
+    setTimeout(() => {
+        document.getElementById('provider-suggestions').classList.remove('show');
+    }, 200);
+}
+
+function selectProvider(provider) {
+    document.getElementById('provider-search').value = provider.name;
+    hideProviderSuggestions();
+    displayProviderOffices(provider);
+}
+
+function displayProviderOffices(provider) {
+    const providerResults = document.getElementById('provider-results');
+    const providerInfo = document.getElementById('provider-info');
+    const officeList = document.getElementById('provider-office-list');
+
+    // Calculate distances from provider to all offices
+    const officesWithDistance = offices.map(office => ({
+        ...office,
+        distance: calculateDistance(provider.lat, provider.lng, office.lat, office.lng)
+    }));
+
+    // Sort by distance
+    officesWithDistance.sort((a, b) => a.distance - b.distance);
+
+    // Display provider info
+    providerInfo.innerHTML = `
+        <div class="provider-name">${provider.name}</div>
+        <div class="provider-location">Coordinates: ${provider.lat}, ${provider.lng}</div>
+    `;
+
+    // Display offices
+    officeList.innerHTML = officesWithDistance.map(office => {
+        const searchQuery = `Kids & Teens Medical Group ${office.address}`;
+        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`;
+        return `
+            <div class="office-card">
+                <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
+                    <div class="office-name">${office.name}</div>
+                    <div class="office-address">${office.address}</div>
+                    <div class="office-distance">${office.distance.toFixed(1)} miles away</div>
+                </a>
+            </div>
+        `;
+    }).join('');
+
+    providerResults.style.display = 'block';
+}
+
+function handleProviderKeyboard(e) {
+    const suggestionsContainer = document.getElementById('provider-suggestions');
+    const items = suggestionsContainer.querySelectorAll('.provider-suggestion-item');
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        currentHighlightedIndex = Math.min(currentHighlightedIndex + 1, items.length - 1);
+        updateHighlight(items);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        currentHighlightedIndex = Math.max(currentHighlightedIndex - 1, -1);
+        updateHighlight(items);
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (currentHighlightedIndex >= 0 && currentSuggestions[currentHighlightedIndex]) {
+            selectProvider(currentSuggestions[currentHighlightedIndex]);
+        }
+    } else if (e.key === 'Escape') {
+        hideProviderSuggestions();
+    }
+}
+
+function updateHighlight(items) {
+    items.forEach((item, index) => {
+        if (index === currentHighlightedIndex) {
+            item.classList.add('highlighted');
+            item.scrollIntoView({ block: 'nearest' });
+        } else {
+            item.classList.remove('highlighted');
+        }
+    });
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('search-button').addEventListener('click', searchOffices);
@@ -194,7 +329,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     document.getElementById('zipcode').addEventListener('input', hideError);
-    
+
+    // Provider search event listeners
+    const providerSearchInput = document.getElementById('provider-search');
+    providerSearchInput.addEventListener('input', (e) => {
+        showProviderSuggestions(e.target.value);
+    });
+    providerSearchInput.addEventListener('keydown', handleProviderKeyboard);
+    providerSearchInput.addEventListener('blur', hideProviderSuggestions);
+
     document.getElementById('nav-patients').addEventListener('click', function(e) {
         e.preventDefault();
         window.location.hash = '#patients';
@@ -203,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         window.location.hash = '#providers';
     });
-    
+
     window.addEventListener('hashchange', handleHashChange);
     handleHashChange();
 }); 
