@@ -335,6 +335,22 @@ body {
     color: #86868b;
 }
 
+.footer-note {
+    text-align: center;
+    margin-top: 48px;
+    padding: 24px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border-left: 4px solid #007aff;
+}
+
+.footer-note p {
+    font-size: 15px;
+    color: #1d1d1f;
+    margin: 0;
+}
+
 @media (max-width: 640px) {
     .container {
         padding: 20px 16px;
