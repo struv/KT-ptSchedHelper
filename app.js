@@ -196,9 +196,15 @@ function searchProviders(query) {
 
     query = query.toLowerCase().trim();
 
-    // Search for providers matching the query
-    return providers.filter(provider => {
-        const name = provider.name.toLowerCase();
+    // Combine providers and staff into one searchable list
+    const allPeople = [
+        ...providers.map(p => ({ ...p, type: 'Provider' })),
+        ...staff.map(s => ({ ...s, type: 'Staff' }))
+    ];
+
+    // Search for providers/staff matching the query
+    return allPeople.filter(person => {
+        const name = person.name.toLowerCase();
         return name.includes(query);
     }).slice(0, 10); // Limit to 10 suggestions
 }
@@ -223,10 +229,8 @@ function showProviderSuggestions(query) {
         return;
     }
 
-    suggestionsContainer.innerHTML = matches.map((provider, index) =>
-        `<div class="provider-suggestion-item" data-index="${index}">
-            ${highlightMatch(provider.name, query)}
-        </div>`
+    suggestionsContainer.innerHTML = matches.map((person, index) =>
+        `<div class="provider-suggestion-item" data-index="${index}"><span class="person-name">${highlightMatch(person.name, query)}</span><span class="person-type">${person.type}</span></div>`
     ).join('');
 
     suggestionsContainer.classList.add('show');

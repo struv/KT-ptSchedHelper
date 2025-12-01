@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node geocode_providers.js:*)"
+      "Bash(node geocode_providers.js:*)",
+      "Bash(node geocode_staff.js:*)"
     ],
     "deny": [],
     "ask": []

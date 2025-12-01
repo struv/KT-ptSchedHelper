@@ -293,6 +293,9 @@ body {
     font-size: 16px;
     color: #1d1d1f;
     border-bottom: 1px solid #f5f5f7;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .provider-suggestion-item:last-child {
@@ -308,6 +311,28 @@ body {
 .provider-suggestion-item strong {
     font-weight: 600;
     color: #007aff;
+}
+
+.person-name {
+    flex: 1;
+}
+
+.person-type {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: #e5e5e7;
+    color: #1d1d1f;
+    font-weight: 500;
+    white-space: nowrap;
+    margin-left: 12px;
+    flex-shrink: 0;
+}
+
+.provider-suggestion-item:hover .person-type,
+.provider-suggestion-item.highlighted .person-type {
+    background: #007aff;
+    color: white;
 }
 
 .provider-results {
