@@ -97,7 +97,8 @@ const providers = [
     { name: "Maria Vega", lat: 33.953, lng: -118.143 },
     { name: "Mary Wang", lat: 34.056, lng: -118.118 },
     { name: "Joanna Wu", lat: 34.088, lng: -118.075 },
-    { name: "Jocelyn Zuniga", lat: 34.104, lng: -118.077 }
+    { name: "Jocelyn Zuniga", lat: 34.104, lng: -118.077 },
+    { name: "Lucy Dushikyan", lat: 34.204, lng: -118.441 }
 ];
 
 const staff = [

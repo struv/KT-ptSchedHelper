@@ -2,7 +2,7 @@ const https = require('https');
 const fs = require('fs');
 
 // Read and parse CSV
-const csvContent = fs.readFileSync('Provider Addresses.csv', 'utf-8');
+const csvContent = fs.readFileSync('ProviderAddresses.csv', 'utf-8');
 const lines = csvContent.trim().split('\n');
 
 // Parse CSV data - updated for new format (no Address 2 column)

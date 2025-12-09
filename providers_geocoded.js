@@ -328,5 +328,10 @@ const providers = [
         "name": "JOCELYN ZUNIGA",
         "lat": 34.104,
         "lng": -118.077
+    },
+    {
+        "name": "Lucy Dushikyan",
+        "lat": 34.204,
+        "lng": -118.441
     }
 ];

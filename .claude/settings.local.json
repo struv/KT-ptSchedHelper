@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(node geocode_providers.js:*)",
-      "Bash(node geocode_staff.js:*)"
+      "Bash(node geocode_staff.js:*)",
+      "Bash(if [ -f \"Provider Addresses.csv\" ])",
+      "Bash(then mv \"Provider Addresses.csv\" \"ProviderAddresses.csv\")",
+      "Bash(elif [ -f \"ProviderAddresses.csv\" ])",
+      "Bash(then echo \"File already renamed\")",
+      "Bash(else echo \"File not found\")",
+      "Bash(fi)"
     ],
     "deny": [],
     "ask": []
