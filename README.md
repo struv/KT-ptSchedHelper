@@ -2,9 +2,20 @@
 https://kt-pt-sched-helper.vercel.app
 (temporary)
 
-Steps for the mvp are:
-- translate provider addresses into coordinates with 4 sigfigs to reduce privacy concerns
-- use this to build app?
+### When user enters ZIP or City (app.js:34-68):
+
+  1. User types "91324" or "Pasadena"
+  2. Validation (app.js:13-32) checks if it's ZIP or city
+  3. Geocoding API call (app.js:44-48)
+  4. Returns coordinates like {lat: 34.2269, lng: -118.5359}
+  5. Caches in localStorage (app.js:2-10) so same search is instant next time
+  6. Haversine formula (app.js:70-80) calculates distance between user coords and each office
+  7. Sorts offices by distance (app.js:90)
+
+Geocoding APIs:
+  - For ZIP: https://nominatim.openstreetmap.org/search?format=json&postalcode=91324&countrycodes=us&limit=1 
+  - For City: https://nominatim.openstreetmap.org/search?format=json&city=Pasadena&countrycodes=us&limit=1
+  
 The part below is AI generated.
 
 ## Phase 1: Core Infrastructure (Weeks 1-4)
@@ -125,3 +136,4 @@ The part below is AI generated.
 - Monthly recurring revenue
 - Database query performance (<200ms)
 - App store ratings (target: 4.5+)
+
