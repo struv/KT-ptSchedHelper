@@ -72,6 +72,30 @@
     </div>
 
     <script src="data.js"></script>
-    <script src="app.js"></script>
+    <script>
+    (async function() {
+        try {
+            const res = await fetch('/api/data');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.providers && data.providers.length > 0) {
+                    window.providers = data.providers;
+                }
+                if (data.staff && data.staff.length > 0) {
+                    window.staff = data.staff;
+                }
+                if (data.offices && data.offices.length > 0) {
+                    window.offices = data.offices;
+                }
+            }
+        } catch (e) {
+            // Fallback to data.js values (already loaded above)
+            console.log('Using local data.js fallback');
+        }
+        const s = document.createElement('script');
+        s.src = 'app.js';
+        document.body.appendChild(s);
+    })();
+    </script>
 </body>
 </html>
