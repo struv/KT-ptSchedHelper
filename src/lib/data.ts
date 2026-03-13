@@ -8,7 +8,7 @@ export async function getData(): Promise<AppData> {
     return { providers: [], staff: [], offices: [] };
   }
 
-  const response = await fetch(blobs[0].url);
+  const response = await fetch(blobs[0].url, { cache: "no-store" });
   return await response.json();
 }
 
