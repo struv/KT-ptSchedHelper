@@ -62,7 +62,7 @@ export async function geocodeLocation(
 
 export async function geocodeAddress(
   address: string
-): Promise<{ lat: number; lng: number }> {
+): Promise<{ lat: number; lng: number; displayName: string }> {
   const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&countrycodes=us&limit=1`;
   const response = await fetch(url);
   const results = await response.json();
@@ -76,7 +76,22 @@ export async function geocodeAddress(
   return {
     lat: parseFloat(results[0].lat),
     lng: parseFloat(results[0].lon),
+    displayName: results[0].display_name,
   };
+}
+
+export async function searchAddress(
+  query: string
+): Promise<{ lat: number; lng: number; displayName: string }[]> {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=us&limit=5`;
+  const response = await fetch(url);
+  const results = await response.json();
+
+  return results.map((r: { lat: string; lon: string; display_name: string }) => ({
+    lat: parseFloat(r.lat),
+    lng: parseFloat(r.lon),
+    displayName: r.display_name,
+  }));
 }
 
 export function calculateDistance(

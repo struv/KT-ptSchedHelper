@@ -1,11 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { geocodeAddress } from "@/lib/geo";
+import { geocodeAddress, searchAddress } from "@/lib/geo";
 import type { AppData } from "@/lib/types";
 
 type TabName = "providers" | "staff" | "offices";
+
+interface VerifiedAddress {
+  lat: number;
+  lng: number;
+  displayName: string;
+}
+
+interface AddressSuggestion {
+  lat: number;
+  lng: number;
+  displayName: string;
+}
 
 export default function AdminPage() {
   const [password, setPassword] = useState("");
@@ -32,12 +44,84 @@ export default function AdminPage() {
   const [officeAddress, setOfficeAddress] = useState("");
   const [adding, setAdding] = useState(false);
 
+  // Address autocomplete state (per tab)
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [verifiedAddresses, setVerifiedAddresses] = useState<Record<TabName, VerifiedAddress | null>>({
+    providers: null,
+    staff: null,
+    offices: null,
+  });
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (message) {
       const timer = setTimeout(() => setMessage(null), 3000);
       return () => clearTimeout(timer);
     }
   }, [message]);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleAddressChange = useCallback(
+    (value: string, type: TabName, setFn: (v: string) => void) => {
+      setFn(value);
+      // Clear verification when user edits the field
+      setVerifiedAddresses((prev) => ({ ...prev, [type]: null }));
+
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+
+      if (value.trim().length < 3) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      debounceRef.current = setTimeout(async () => {
+        setSearching(true);
+        try {
+          const results = await searchAddress(value.trim());
+          setSuggestions(results);
+          setShowSuggestions(results.length > 0);
+        } catch {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        } finally {
+          setSearching(false);
+        }
+      }, 600);
+    },
+    []
+  );
+
+  function handleSuggestionSelect(
+    suggestion: AddressSuggestion,
+    type: TabName,
+    setFn: (v: string) => void
+  ) {
+    setFn(suggestion.displayName);
+    setVerifiedAddresses((prev) => ({
+      ...prev,
+      [type]: {
+        lat: suggestion.lat,
+        lng: suggestion.lng,
+        displayName: suggestion.displayName,
+      },
+    }));
+    setSuggestions([]);
+    setShowSuggestions(false);
+  }
 
   async function handleLogin() {
     if (!password.trim()) {
@@ -116,7 +200,11 @@ export default function AdminPage() {
 
     setAdding(true);
     try {
-      const coords = await geocodeAddress(address);
+      // Use pre-verified coords if available, otherwise geocode on submit
+      const verified = verifiedAddresses[type];
+      const coords = verified
+        ? { lat: verified.lat, lng: verified.lng }
+        : await geocodeAddress(address);
 
       const body: Record<string, unknown> = {
         type,
@@ -148,6 +236,7 @@ export default function AdminPage() {
           setOfficeName("");
           setOfficeAddress("");
         }
+        setVerifiedAddresses((prev) => ({ ...prev, [type]: null }));
         await loadData();
       } else {
         showMessage(result.error || "Failed to add entry", true);
@@ -273,6 +362,9 @@ export default function AdminPage() {
       buttonLabel = "Add Office";
     }
 
+    const verified = verifiedAddresses[type];
+    const isAddDisabled = adding || searching;
+
     return (
       <div>
         <div className="add-form">
@@ -290,7 +382,7 @@ export default function AdminPage() {
                 onChange={(e) => setNameFn(e.target.value)}
               />
             </div>
-            <div className="input-group">
+            <div className="input-group" ref={suggestionsRef}>
               <label htmlFor={`${type}-address`}>
                 {type === "offices" ? "Address" : "Home Address"}
               </label>
@@ -299,16 +391,41 @@ export default function AdminPage() {
                 id={`${type}-address`}
                 placeholder={addressPlaceholder}
                 value={addressVal}
-                onChange={(e) => setAddressFn(e.target.value)}
+                onChange={(e) => handleAddressChange(e.target.value, type, setAddressFn)}
+                onFocus={() => {
+                  if (suggestions.length > 0) setShowSuggestions(true);
+                }}
+                autoComplete="off"
               />
+              {searching && (
+                <div className="address-searching">Searching...</div>
+              )}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="address-suggestions">
+                  {suggestions.map((s, i) => (
+                    <div
+                      key={i}
+                      className="address-suggestion-item"
+                      onMouseDown={() => handleSuggestionSelect(s, type, setAddressFn)}
+                    >
+                      {s.displayName}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {verified && (
+                <div className="address-verified">
+                  Verified: {verified.displayName}
+                </div>
+              )}
             </div>
           </div>
           <button
             className="add-button"
             onClick={() => addEntry(type)}
-            disabled={adding}
+            disabled={isAddDisabled}
           >
-            {adding ? "Adding..." : buttonLabel}
+            {adding ? "Adding..." : searching ? "Searching..." : buttonLabel}
           </button>
         </div>
         <div className="list-container">
