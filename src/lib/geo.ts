@@ -60,10 +60,29 @@ export async function geocodeLocation(
   return coords;
 }
 
+interface NominatimAddress {
+  house_number?: string;
+  road?: string;
+  city?: string;
+  town?: string;
+  village?: string;
+  hamlet?: string;
+  county?: string;
+  state?: string;
+  postcode?: string;
+}
+
+function formatAddress(addr: NominatimAddress): string {
+  const street = [addr.house_number, addr.road].filter(Boolean).join(" ");
+  const city = addr.city || addr.town || addr.village || addr.hamlet;
+  const parts = [street, city, addr.state, addr.postcode].filter(Boolean);
+  return parts.join(", ");
+}
+
 export async function geocodeAddress(
   address: string
 ): Promise<{ lat: number; lng: number; displayName: string }> {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&countrycodes=us&limit=1`;
+  const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(address)}&countrycodes=us&limit=1`;
   const response = await fetch(url);
   const results = await response.json();
 
@@ -76,21 +95,21 @@ export async function geocodeAddress(
   return {
     lat: parseFloat(results[0].lat),
     lng: parseFloat(results[0].lon),
-    displayName: results[0].display_name,
+    displayName: formatAddress(results[0].address),
   };
 }
 
 export async function searchAddress(
   query: string
 ): Promise<{ lat: number; lng: number; displayName: string }[]> {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=us&limit=5`;
+  const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(query)}&countrycodes=us&limit=5`;
   const response = await fetch(url);
   const results = await response.json();
 
-  return results.map((r: { lat: string; lon: string; display_name: string }) => ({
+  return results.map((r: { lat: string; lon: string; address: NominatimAddress }) => ({
     lat: parseFloat(r.lat),
     lng: parseFloat(r.lon),
-    displayName: r.display_name,
+    displayName: formatAddress(r.address),
   }));
 }
 
