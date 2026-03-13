@@ -226,6 +226,11 @@ export default function AdminPage() {
       const result = await res.json();
       if (res.ok) {
         showMessage(`Added ${name} successfully`);
+        // Optimistically update local state
+        setData((prev) => ({
+          ...prev,
+          [type]: [...prev[type], result.entry],
+        }));
         if (type === "providers") {
           setProviderName("");
           setProviderAddress("");
@@ -237,7 +242,6 @@ export default function AdminPage() {
           setOfficeAddress("");
         }
         setVerifiedAddresses((prev) => ({ ...prev, [type]: null }));
-        await loadData();
       } else {
         showMessage(result.error || "Failed to add entry", true);
       }
@@ -267,7 +271,13 @@ export default function AdminPage() {
       const result = await res.json();
       if (res.ok) {
         showMessage(`Removed ${name} successfully`);
-        await loadData();
+        // Optimistically update local state
+        setData((prev) => ({
+          ...prev,
+          [type]: prev[type].filter(
+            (item) => item.name.toLowerCase() !== name.toLowerCase()
+          ),
+        }));
       } else {
         showMessage(result.error || "Failed to remove entry", true);
       }
