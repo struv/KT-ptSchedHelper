@@ -324,33 +324,31 @@ function updateHighlight(items) {
     });
 }
 
-// Event listeners
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('search-button').addEventListener('click', searchOffices);
-    document.getElementById('zipcode').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            searchOffices();
-        }
-    });
-    document.getElementById('zipcode').addEventListener('input', hideError);
+// Event listeners — run immediately since this script is loaded dynamically after DOM is ready
+document.getElementById('search-button').addEventListener('click', searchOffices);
+document.getElementById('zipcode').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        searchOffices();
+    }
+});
+document.getElementById('zipcode').addEventListener('input', hideError);
 
-    // Provider search event listeners
-    const providerSearchInput = document.getElementById('provider-search');
-    providerSearchInput.addEventListener('input', (e) => {
-        showProviderSuggestions(e.target.value);
-    });
-    providerSearchInput.addEventListener('keydown', handleProviderKeyboard);
-    providerSearchInput.addEventListener('blur', hideProviderSuggestions);
+// Provider search event listeners
+const providerSearchInput = document.getElementById('provider-search');
+providerSearchInput.addEventListener('input', (e) => {
+    showProviderSuggestions(e.target.value);
+});
+providerSearchInput.addEventListener('keydown', handleProviderKeyboard);
+providerSearchInput.addEventListener('blur', hideProviderSuggestions);
 
-    document.getElementById('nav-patients').addEventListener('click', function(e) {
-        e.preventDefault();
-        window.location.hash = '#patients';
-    });
-    document.getElementById('nav-providers').addEventListener('click', function(e) {
-        e.preventDefault();
-        window.location.hash = '#providers';
-    });
+document.getElementById('nav-patients').addEventListener('click', function(e) {
+    e.preventDefault();
+    window.location.hash = '#patients';
+});
+document.getElementById('nav-providers').addEventListener('click', function(e) {
+    e.preventDefault();
+    window.location.hash = '#providers';
+});
 
-    window.addEventListener('hashchange', handleHashChange);
-    handleHashChange();
-}); 
+window.addEventListener('hashchange', handleHashChange);
+handleHashChange(); 
