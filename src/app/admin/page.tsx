@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { geocodeAddress, searchAddress } from "@/lib/geo";
 import type { AppData } from "@/lib/types";
 
 type TabName = "providers" | "staff" | "offices";
@@ -91,7 +90,8 @@ export default function AdminPage() {
       debounceRef.current = setTimeout(async () => {
         setSearching(true);
         try {
-          const results = await searchAddress(value.trim());
+          const res = await fetch(`/api/geocode?q=${encodeURIComponent(value.trim())}&mode=search`);
+          const results = res.ok ? await res.json() : [];
           setSuggestions(results);
           setShowSuggestions(results.length > 0);
         } catch {
@@ -204,7 +204,11 @@ export default function AdminPage() {
       const verified = verifiedAddresses[type];
       const coords = verified
         ? { lat: verified.lat, lng: verified.lng }
-        : await geocodeAddress(address);
+        : await fetch(`/api/geocode?q=${encodeURIComponent(address)}&mode=geocode`)
+            .then((r) => {
+              if (!r.ok) throw new Error("Address not found. Please check the address and try again.");
+              return r.json();
+            });
 
       const body: Record<string, unknown> = {
         type,

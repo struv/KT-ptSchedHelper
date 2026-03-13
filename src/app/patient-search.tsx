@@ -1,25 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import Image from "next/image";
 import { validateLocation, geocodeLocation, calculateDistance } from "@/lib/geo";
 import type { Office, OfficeWithDistance } from "@/lib/types";
 
-export default function PatientSearch() {
-  const [offices, setOffices] = useState<Office[]>([]);
+interface PatientSearchProps {
+  offices: Office[];
+}
+
+export default function PatientSearch({ offices }: PatientSearchProps) {
   const [location, setLocation] = useState("");
   const [results, setResults] = useState<OfficeWithDistance[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    fetch("/api/data")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.offices?.length > 0) setOffices(data.offices);
-      })
-      .catch(() => {});
-  }, []);
 
   async function searchOffices() {
     setError("");
@@ -62,8 +57,15 @@ export default function PatientSearch() {
 
   return (
     <div className="container">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.png" alt="Kids & Teens Medical Group Logo" className="logo-image" />
+      <Image
+        src="/logo.png"
+        alt="Kids & Teens Medical Group Logo"
+        className="logo-image"
+        width={220}
+        height={229}
+        priority
+        sizes="220px"
+      />
       <div className="header">
         <h1>Find Your Nearest Office</h1>
         <p>Enter your ZIP code or city name to find the closest office locations</p>

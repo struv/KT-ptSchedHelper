@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { calculateDistance } from "@/lib/geo";
 import type { Person, Office, OfficeWithDistance } from "@/lib/types";
 
-export default function ProviderSearch() {
-  const [people, setPeople] = useState<Person[]>([]);
-  const [offices, setOffices] = useState<Office[]>([]);
+interface ProviderSearchProps {
+  initialPeople: Person[];
+  initialOffices: Office[];
+}
+
+export default function ProviderSearch({ initialPeople, initialOffices }: ProviderSearchProps) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Person[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -14,20 +18,6 @@ export default function ProviderSearch() {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [results, setResults] = useState<OfficeWithDistance[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    fetch("/api/data")
-      .then((res) => res.json())
-      .then((data) => {
-        const allPeople: Person[] = [
-          ...(data.providers || []).map((p: Person) => ({ ...p, type: "Provider" as const })),
-          ...(data.staff || []).map((s: Person) => ({ ...s, type: "Staff" as const })),
-        ];
-        setPeople(allPeople);
-        if (data.offices?.length > 0) setOffices(data.offices);
-      })
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -42,7 +32,7 @@ export default function ProviderSearch() {
   function searchPeople(q: string) {
     if (!q.trim()) return [];
     const lower = q.toLowerCase().trim();
-    return people.filter((p) => p.name.toLowerCase().includes(lower)).slice(0, 10);
+    return initialPeople.filter((p) => p.name.toLowerCase().includes(lower)).slice(0, 10);
   }
 
   function highlightMatch(text: string, q: string) {
@@ -70,7 +60,7 @@ export default function ProviderSearch() {
     setShowSuggestions(false);
     setSelectedPerson(person);
 
-    const officesWithDistance = offices
+    const officesWithDistance = initialOffices
       .map((office) => ({
         ...office,
         distance: calculateDistance(person.lat, person.lng, office.lat, office.lng),
@@ -99,8 +89,15 @@ export default function ProviderSearch() {
 
   return (
     <div className="container">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.png" alt="Kids & Teens Medical Group Logo" className="logo-image" />
+      <Image
+        src="/logo.png"
+        alt="Kids & Teens Medical Group Logo"
+        className="logo-image"
+        width={220}
+        height={229}
+        priority
+        sizes="220px"
+      />
       <div className="header">
         <h1>Find Nearest Offices for Provider or Staff</h1>
         <p>Search for a provider or staff member to see their closest office locations</p>
