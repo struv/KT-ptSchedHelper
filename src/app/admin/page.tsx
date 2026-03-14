@@ -23,6 +23,7 @@ export default function AdminPage() {
   const [adminPassword, setAdminPassword] = useState<string | null>(null);
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
   const [data, setData] = useState<AppData>({
     providers: [],
     staff: [],
@@ -131,13 +132,20 @@ export default function AdminPage() {
 
     setLoginLoading(true);
     try {
-      const res = await fetch("/api/verify-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
+      // Fire auth check and data fetch in parallel
+      const [authRes, dataRes] = await Promise.all([
+        fetch("/api/verify-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password }),
+        }),
+        fetch("/api/data"),
+      ]);
 
-      if (res.ok) {
+      if (authRes.ok) {
+        if (dataRes.ok) {
+          setData(await dataRes.json());
+        }
         setAdminPassword(password);
         setLoginError("");
       } else {
@@ -151,6 +159,7 @@ export default function AdminPage() {
   }
 
   async function loadData() {
+    setDataLoading(true);
     try {
       const res = await fetch("/api/data");
       if (res.ok) {
@@ -158,13 +167,10 @@ export default function AdminPage() {
       }
     } catch {
       showMessage("Failed to load data", true);
+    } finally {
+      setDataLoading(false);
     }
   }
-
-  useEffect(() => {
-    if (adminPassword) loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adminPassword]);
 
   function showMessage(text: string, isError = false) {
     setMessage({ text, isError });
@@ -507,7 +513,11 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {renderTab(activeTab)}
+      {dataLoading ? (
+        <div className="empty-list">Loading data...</div>
+      ) : (
+        renderTab(activeTab)
+      )}
     </div>
   );
 }
