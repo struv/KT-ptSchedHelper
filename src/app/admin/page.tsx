@@ -48,13 +48,16 @@ export default function AdminPage() {
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [verifiedAddresses, setVerifiedAddresses] = useState<Record<TabName, VerifiedAddress | null>>({
     providers: null,
     staff: null,
     offices: null,
   });
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const suggestionsCache = useRef<Map<string, AddressSuggestion[]>>(new Map());
 
   useEffect(() => {
     if (message) {
@@ -77,31 +80,54 @@ export default function AdminPage() {
   const handleAddressChange = useCallback(
     (value: string, type: TabName, setFn: (v: string) => void) => {
       setFn(value);
-      // Clear verification when user edits the field
       setVerifiedAddresses((prev) => ({ ...prev, [type]: null }));
+      setHighlightedIndex(-1);
 
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (abortRef.current) abortRef.current.abort();
 
-      if (value.trim().length < 3) {
+      const trimmed = value.trim();
+      if (trimmed.length < 3) {
         setSuggestions([]);
         setShowSuggestions(false);
+        setSearching(false);
+        return;
+      }
+
+      // Return cached results immediately if available
+      const cached = suggestionsCache.current.get(trimmed.toLowerCase());
+      if (cached) {
+        setSuggestions(cached);
+        setShowSuggestions(cached.length > 0);
         return;
       }
 
       debounceRef.current = setTimeout(async () => {
+        const controller = new AbortController();
+        abortRef.current = controller;
         setSearching(true);
         try {
-          const res = await fetch(`/api/geocode?q=${encodeURIComponent(value.trim())}&mode=search`);
+          const res = await fetch(
+            `/api/geocode?q=${encodeURIComponent(trimmed)}&mode=search`,
+            { signal: controller.signal }
+          );
           const results = res.ok ? await res.json() : [];
+          suggestionsCache.current.set(trimmed.toLowerCase(), results);
+          // Keep cache bounded
+          if (suggestionsCache.current.size > 50) {
+            const firstKey = suggestionsCache.current.keys().next().value;
+            if (firstKey !== undefined) suggestionsCache.current.delete(firstKey);
+          }
           setSuggestions(results);
           setShowSuggestions(results.length > 0);
-        } catch {
+        } catch (err) {
+          if (err instanceof DOMException && err.name === "AbortError") return;
           setSuggestions([]);
           setShowSuggestions(false);
         } finally {
-          setSearching(false);
+          if (!controller.signal.aborted) setSearching(false);
         }
-      }, 600);
+      }, 300);
     },
     []
   );
@@ -122,6 +148,33 @@ export default function AdminPage() {
     }));
     setSuggestions([]);
     setShowSuggestions(false);
+    setHighlightedIndex(-1);
+  }
+
+  function handleAddressKeyDown(
+    e: React.KeyboardEvent,
+    type: TabName,
+    setFn: (v: string) => void
+  ) {
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightedIndex((prev) =>
+        prev < suggestions.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightedIndex((prev) =>
+        prev > 0 ? prev - 1 : suggestions.length - 1
+      );
+    } else if (e.key === "Enter" && highlightedIndex >= 0) {
+      e.preventDefault();
+      handleSuggestionSelect(suggestions[highlightedIndex], type, setFn);
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+      setHighlightedIndex(-1);
+    }
   }
 
   async function handleLogin() {
@@ -342,6 +395,17 @@ export default function AdminPage() {
     );
   }
 
+  // Clear suggestions when switching tabs
+  function handleTabSwitch(tab: TabName) {
+    setActiveTab(tab);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setHighlightedIndex(-1);
+    setSearching(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (abortRef.current) abortRef.current.abort();
+  }
+
   // Admin panel
   const tabs: TabName[] = ["providers", "staff", "offices"];
 
@@ -412,21 +476,29 @@ export default function AdminPage() {
                 placeholder={addressPlaceholder}
                 value={addressVal}
                 onChange={(e) => handleAddressChange(e.target.value, type, setAddressFn)}
+                onKeyDown={(e) => handleAddressKeyDown(e, type, setAddressFn)}
                 onFocus={() => {
                   if (suggestions.length > 0) setShowSuggestions(true);
                 }}
                 autoComplete="off"
+                role="combobox"
+                aria-expanded={showSuggestions && suggestions.length > 0}
+                aria-activedescendant={highlightedIndex >= 0 ? `suggestion-${highlightedIndex}` : undefined}
               />
               {searching && (
                 <div className="address-searching">Searching...</div>
               )}
               {showSuggestions && suggestions.length > 0 && (
-                <div className="address-suggestions">
+                <div className="address-suggestions" role="listbox">
                   {suggestions.map((s, i) => (
                     <div
                       key={i}
-                      className="address-suggestion-item"
+                      id={`suggestion-${i}`}
+                      className={`address-suggestion-item${i === highlightedIndex ? " highlighted" : ""}`}
+                      role="option"
+                      aria-selected={i === highlightedIndex}
                       onMouseDown={() => handleSuggestionSelect(s, type, setAddressFn)}
+                      onMouseEnter={() => setHighlightedIndex(i)}
                     >
                       {s.displayName}
                     </div>
@@ -506,7 +578,7 @@ export default function AdminPage() {
           <button
             key={tab}
             className={`tab-button${activeTab === tab ? " active" : ""}`}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => handleTabSwitch(tab)}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>

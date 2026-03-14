@@ -30,7 +30,9 @@ export async function GET(request: NextRequest) {
   const limit = mode === "geocode" ? 1 : 5;
   const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(q)}&countrycodes=us&limit=${limit}`;
 
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    headers: { "User-Agent": "KT-ptSchedHelper/1.0" },
+  });
   const results = await response.json();
 
   if (mode === "geocode") {
